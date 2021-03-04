@@ -17,4 +17,4 @@ wget --no-check-certificate -O /root/run.sh https://git.io/Jqfs7 && chmod 755 /r
 
 完装完成后可以直接使用windows远程登陆工具连接了
 
-[debian10安装成功](https://i.imgur.com/h8c1j8p.png)
+[img](https://i.imgur.com/h8c1j8p.png)
