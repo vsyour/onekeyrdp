@@ -22,4 +22,4 @@ wget --no-check-certificate -O /root/run.sh https://git.io/Jqfs7 && chmod 755 /r
 
 
 问题(待解决)：
-2021年0305测试 Ubuntu 20.10 x64 失败,提示: Oh no! Something has gone wrong
+2021年03月05日 测试 Ubuntu 20.10 x64 失败,提示: Oh no! Something has gone wrong
