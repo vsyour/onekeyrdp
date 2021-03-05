@@ -18,3 +18,8 @@ wget --no-check-certificate -O /root/run.sh https://git.io/Jqfs7 && chmod 755 /r
 安装完成后可以直接使用windows远程登陆工具连接了
 
 ![安装完成](https://i.imgur.com/h8c1j8p.png)
+
+
+
+问题(待解决)：
+2021年0305测试 Ubuntu 20.10 x64 失败,提示: Oh no! Something has gone wrong
