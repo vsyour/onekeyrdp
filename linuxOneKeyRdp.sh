@@ -97,7 +97,7 @@ __initSystem(){
 }
 
 __addUser(){
-	grep "${userName}" /etc/passwd || sudo useradd -m "${userName}" && echo "${userName}  ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/${userName}" && echo "${userName}:${passWord}" | sudo chpasswd && sed -i "/${userName}:x:1000:1000::\/home\/${userName}:\/bin\/sh/d" /etc/passwd && echo "${userName}:x:1000:1000::/home/${userName}:/bin/bash" >> /etc/passwd
+	grep "${userName}" /etc/passwd || sudo useradd -m "${userName}" && echo "${userName}  ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/${userName}" && echo "${userName}:${passWord}" | sudo chpasswd && sed -i "/${userName}:x:/d" /etc/passwd && echo "${userName}:x:1000:1000::/home/${userName}:/bin/bash" >> /etc/passwd
 }
 
 __update(){
