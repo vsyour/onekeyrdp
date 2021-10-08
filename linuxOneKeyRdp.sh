@@ -123,7 +123,7 @@ __update(){
 __installDesktop(){
 	sudo $PM --fix-broken
 	sudo $PM xfce4 desktop-base xrdp lxterminal mousepad -y
-	sudo $PM xscreensaver -y
+	#sudo $PM xscreensaver -y
 	sudo systemctl disable lightdm.service
 	sudo systemctl enable xrdp
 	sudo /etc/init.d/xrdp restart
