@@ -121,6 +121,7 @@ __update(){
 }
 
 __installDesktop(){
+	sudo DEBIAN_FRONTEND=noninteractive
 	sudo $PM --fix-broken
 	sudo $PM xfce4 desktop-base xrdp lxterminal mousepad -y
 	#sudo $PM xscreensaver -y
