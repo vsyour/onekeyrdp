@@ -7,34 +7,52 @@
 # Reference URL:
 # https://www.vksec.com
 
-echo "
-+----------------------------------------------------------------------
-| Configure And Start RDP FOR CentOS/Ubuntu/Debian
-+----------------------------------------------------------------------
-| Copyright © 2015-2099 vksec (https://www.vksec.com) All rights reserved.
-+----------------------------------------------------------------------
-| The Can Use will systemctl status bee when installed.
-+----------------------------------------------------------------------
-";printf "Check Out My Channel While Waiting- https://github.com/vsyour/onekeyrdp \n\n" >&2;sleep 5
-logPath='./oneKeyRdp.log'
-userName='debian'
-passWord=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10;echo`
-date "+【%Y-%m-%d %H:%M:%S】 Generate User ${userName}:${passWord}" 2>&1 | tee -a $logPath
+
+RED="\033[31m"      # Error message
+GREEN="\033[32m"    # Success message
+YELLOW="\033[33m"   # Warning message
+BLUE="\033[36m"     # Info message
+PLAIN='\033[0m'
 
 
-get_char()
+function colorEcho() {
+    echo -e "${1}${@:2}${PLAIN}"
+}
+
+function checkSystem()
 {
-SAVEDSTTY=`stty -g`
-stty -echo
-stty cbreak
-dd if=/dev/tty bs=1 count=1 2> /dev/null
-stty -raw
-stty echo
-stty $SAVEDSTTY
+    #result=$(id | awk '{print $1}')
+    #if [ $result != "uid=0(root)" ]; then
+    #    colorEcho $RED " 请以root身份执行该脚本"
+    #    exit 1
+    #fi
+
+    res=`which yum 2>/dev/null`
+    if [ "$?" != "0" ]; then
+        res=`which apt 2>/dev/null`
+        if [ "$?" != "0" ]; then
+            colorEcho $RED " 不受支持的Linux系统"
+            exit 1
+        fi
+        PMT=apt
+        #CMD_INSTALL="apt install -y "
+        #CMD_REMOVE="apt remove -y "
+        #CMD_UPGRADE="apt update; apt upgrade -y; apt autoremove -y"
+    else
+        PMT=yum
+        #CMD_INSTALL="yum install -y "
+        #CMD_REMOVE="yum remove -y "
+        #CMD_UPGRADE="yum update -y"
+    fi
+    res=`which systemctl 2>/dev/null`
+    if [ "$?" != "0" ]; then
+        colorEcho $RED " 系统版本过低，请升级到最新版本"
+        exit 1
+    fi
 }
 
 
-__Auto_Swap(){
+function Auto_Swap(){
     swap=$(free |grep Swap|awk '{print $2}')
 	if [ "${swap}" -gt 1 ];then
 	    echo "Swap total sizse: $swap";
@@ -57,97 +75,13 @@ __Auto_Swap(){
 	rm -f $swapFile
 }
 
-__initSystem(){
-	PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-	export PATH
-	LANG=en_US.UTF-8
-	cd ~
-	
-	red='\e[91m'
-	green='\e[92m'
-	yellow='\e[93m'
-	magenta='\e[95m'
-	cyan='\e[96m'
-	none='\e[0m'
-	_red() { echo -e ${red}$*${none}; }
-	_green() { echo -e ${green}$*${none}; }
-	_yellow() { echo -e ${yellow}$*${none}; }
-	_magenta() { echo -e ${magenta}$*${none}; }
-	_cyan() { echo -e ${cyan}$*${none}; }
-	
-	# Root
-	[[ $(id -u) != 0 ]] && echo -e "\n You must be ${red}root ${none}to run this script ( Enter: sudo su) ${yellow}~(^_^) ${none}\n" && exit 1
-
-	PM="apt-get install --assume-yes"
-	DEBIAN_FRONTEND=noninteractive	
-	sys_bit=$(uname -m)
-
-	# check os
-	if [[ $(command -v apt-get) || $(command -v yum) ]] && [[ $(command -v systemctl) ]]; then
-		if [[ $(command -v yum) ]]; then
-			PM="yum install"			
-		fi
-	else
-		echo -e " 
-		LoL ... This ${red}junk script${none} does not support your system.。 ${yellow}(-_-) ${none}
-
-		Note: Only support Ubuntu 16+ / Debian 8+ / CentOS 7+ system
-		" && exit 1
-	fi
+function InstallSystem_debian(){
+	source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/debian.sh $1)
 }
 
-__addUser(){
-	grep "${userName}" /etc/passwd || sudo useradd -m "${userName}" && echo "${userName}  ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/${userName}" && echo "${userName}:${passWord}" | sudo chpasswd && sed -i "/${userName}:x:/d" /etc/passwd && echo "${userName}:x:1000:1000::/home/${userName}:/bin/bash" >> /etc/passwd
+function InstallSystem_centos(){
+	source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/centos.sh $1)
 }
 
-__update(){
-	if [[ ${PM} == "yum install" ]]; then
-		sudo yum -y update
-		sudo yum -y upgrade		
-		sudo yum install -y epel-release		
-		sudo yum groupinstall "X window system" -y		
-		yum --enablerepo=epel group -y install "Xfce" "base-x"		
-		echo "xfce4-session" > /home/"${userName}"/.Xclients
-		chmod a+x /home/"${userName}"/.Xclients	
-		sudo systemctl set-default graphical.target
-		sudo yum install -y firefox
-		sudo yum install wqy* cjkuni* -y
-		systemctl start xrdp
-	else
-	    sudo apt-get -y update
-		sudo apt-get -y upgrade
-	fi
-	
-}
-
-__installDesktop(){
-	sudo DEBIAN_FRONTEND=noninteractive
-	sudo $PM --fix-broken
-	sudo $PM xfce4 desktop-base xrdp lxterminal mousepad -y
-	#sudo $PM xscreensaver -y
-	sudo systemctl disable lightdm.service
-	sudo systemctl enable xrdp
-	sudo /etc/init.d/xrdp restart
-}
-
-__installSoftware(){
-	sudo $PM firefox-esr
-	sudo $PM firefox
-	sudo $PM locales ttf-wqy-zenhei ttf-wqy-microhei
-	sudo $PM nautilus nano -y
-}
-
-__Auto_Swap
-__initSystem
-__addUser
-__update
-__installDesktop
-__installSoftware
-
-printf "Your ${userName} Pasword Is ${passWord} \n"
-echo "Press any key to continue Reboot!"
-char=`get_char`
-reboot
-
-
-
+[[ "$PMT" = "apt" ]] && InstallSystem_debian "debian"
+[[ "$PMT" = "yum" ]] && InstallSystem_centos "centos"
