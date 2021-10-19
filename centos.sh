@@ -54,8 +54,8 @@ sudo yum locales ttf-wqy-zenhei ttf-wqy-microhei
 sudo yum nautilus nano -y
 
 sudo yum install -y xrdp
-systemctl start xrdp
-systemctl enable xrdp
+sudo systemctl start xrdp
+sudo systemctl enable xrdp
 date "+【%Y-%m-%d %H:%M:%S】 Install Software." 2>&1 | tee -a $logPath
 sudo su - $userName -c "wget -O ~/google-chrome-stable_current_x86_64.rpm https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
 sudo su - $userName -c "sudo yum -y install ~/google-chrome-stable_current_x86_64.rpm"
