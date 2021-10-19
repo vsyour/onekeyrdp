@@ -83,5 +83,6 @@ function InstallSystem_centos(){
 	source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/centos.sh $1)
 }
 
+checkSystem
 [[ "$PMT" = "apt" ]] && InstallSystem_debian "debian"
 [[ "$PMT" = "yum" ]] && InstallSystem_centos "centos"
