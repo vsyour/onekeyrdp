@@ -8,7 +8,7 @@ QQ群： 397745473
 
 vultr OS: CentOS/Ubuntu/Debian 测试通过
 
-vps推荐 https://www.vultr.com/?ref=8391117-6G (新用户充10$得110$)
+vps推荐 https://www.vultr.com/?ref=8955885-8H (新用户充10$得110$)
 
 执行命令:
 ```
