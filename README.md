@@ -14,6 +14,13 @@ vps推荐 https://www.vultr.com/?ref=8955885-8H (新用户充10$得110$)
 ```
 source <(curl -sL https://git.io/Jqfs7)
 ```
+```
+剪贴板无法使用可以尝试执行:
+apt-get install clipit
+
+更多参考: https://wiki.debian.org/LXDE/Discussion
+```
+
 
 安装完成后可以直接使用windows远程登陆工具连接了
 
