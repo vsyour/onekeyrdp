@@ -46,7 +46,8 @@ date "+【%Y-%m-%d %H:%M:%S】 Install ${userName} DeskTop System." 2>&1 | tee -
 
 sudo su - $userName -c "sudo apt install -y aptitude"
 sudo su - $userName -c "sudo aptitude update -y"
-sudo su - $userName -c "sudo aptitude install -q -y lxde"
+#sudo su - $userName -c "sudo aptitude install -q -y lxde"
+sudo su - $userName -c "sudo aptitude install -q -y --without-recommends lxde"
 sudo su - $userName -c "sudo apt install -y lxterminal mousepad"
 
 date "+【%Y-%m-%d %H:%M:%S】 Install xrdp." 2>&1 | tee -a $logPath
