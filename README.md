@@ -15,8 +15,12 @@ vps推荐 https://www.vultr.com/?ref=8955885-8H (新用户充10$得110$)
 source <(curl -sL https://git.io/Jqfs7)
 ```
 ```
-剪贴板无法使用可以尝试执行:
+常见问题:
+1. 剪贴板无法使用可以尝试执行:
 apt-get install clipit
+
+2. 增加SWAP
+bash https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh
 
 更多参考: https://wiki.debian.org/LXDE/Discussion
 ```
