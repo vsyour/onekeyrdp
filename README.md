@@ -28,6 +28,12 @@ dd if=/dev/zero of=/var/swapfile bs=1M count=2048 && /sbin/mkswap /var/swapfile 
 3. 渗透工具安装
 source <(curl -sL https://git.io/pentools)
 
+4. 修改SSH端口
+sed -i 's/#Port 22/Port 9922/g'  /etc/ssh/sshd_config 
+
+5. 关闭删除ufw防火墙
+ufw disable && apt-get remove ufw -y
+
 ```
 
 
