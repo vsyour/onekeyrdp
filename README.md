@@ -23,6 +23,8 @@ apt-get install clipit
 2. 增加SWAP
 source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh)
 
+3. 渗透工具安装
+source <(curl -sL https://git.io/pentools)
 
 ```
 
