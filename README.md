@@ -18,19 +18,15 @@ source <(curl -sL https://git.io/Jqfs7)
 常见问题:
 1. 剪贴板无法使用可以尝试执行:
 apt-get install clipit
+更多参考: https://wiki.debian.org/LXDE/Discussion
 
 2. 增加SWAP
 bash https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh
 
-更多参考: https://wiki.debian.org/LXDE/Discussion
+
 ```
 
 
 安装完成后可以直接使用windows远程登陆工具连接了
 
 ![安装完成](https://i.imgur.com/h8c1j8p.png)
-
-
-
-问题(待解决)：
-2021年03月05日 测试 Ubuntu 20.10 x64 失败,提示: Oh no! Something has gone wrong
