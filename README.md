@@ -21,7 +21,7 @@ apt-get install clipit
 更多参考: https://wiki.debian.org/LXDE/Discussion
 
 2. 增加SWAP
-bash https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh
+source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh)
 
 
 ```
