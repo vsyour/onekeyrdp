@@ -22,6 +22,8 @@ apt-get install clipit
 
 2. 增加SWAP
 source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh)
+或者
+dd if=/dev/zero of=/var/swapfile bs=1M count=2048 && /sbin/mkswap /var/swapfile && /sbin/swapon /var/swapfile && chmod 0600 /var/swapfile && echo "/var/swapfile swap swap defaults 0 0" >>/etc/fstab
 
 3. 渗透工具安装
 source <(curl -sL https://git.io/pentools)
