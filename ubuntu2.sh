@@ -18,7 +18,7 @@ stty -raw
 stty echo
 stty $SAVEDSTTY
 }
-sudo export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive
 
 echo "
 +----------------------------------------------------------------------
