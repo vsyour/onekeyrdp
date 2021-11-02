@@ -53,7 +53,19 @@ sudo su - $userName -c "sudo aptitude install -q -y --without-recommends lxde"
 sudo su - $userName -c "sudo apt install -y lxterminal mousepad"
 
 date "+【%Y-%m-%d %H:%M:%S】 Install xrdp." 2>&1 | tee -a $logPath
-sudo su - $userName -c "sudo apt install -y xrdp tigervnc-standalone-server"
+#sudo su - $userName -c "sudo apt install -y xrdp tigervnc-standalone-server"
+sudo apt install expect -y
+expect <(cat <<'END'
+set timeout 20
+spawn sudo su - $userName -c "sudo apt install -y xrdp tigervnc-standalone-server"
+expect { 
+    "*Package*" { send "\011"; send "\r" }
+    "软件包设置*" { send "\011"; send "\r" }
+}
+interact
+END
+)
+
 sudo su - $userName -c "sudo systemctl enable xrdp"
 sudo su - $userName -c "sudo /etc/init.d/xrdp restart"
 sudo su - $userName -c "sudo apt install --assume-yes --fix-broken"
