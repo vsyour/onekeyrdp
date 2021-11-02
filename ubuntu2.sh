@@ -57,7 +57,7 @@ date "+【%Y-%m-%d %H:%M:%S】 Install xrdp." 2>&1 | tee -a $logPath
 sudo apt install expect -y
 expect <(cat <<'END'
 set timeout 20
-spawn sudo su - $userName -c "sudo apt install -y xrdp tigervnc-standalone-server"
+spawn sudo apt install -y xrdp tigervnc-standalone-server
 expect { 
     "*Package*" { send "\011"; send "\r" }
     "软件包设置*" { send "\011"; send "\r" }
