@@ -31,6 +31,11 @@ source <(curl -sL https://git.io/pentools)
 4. 修改SSH端口
 sed -i 's/#Port 22/Port 9922/g'  /etc/ssh/sshd_config 
 
+#允许root认证登录
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/g'  /etc/ssh/sshd_config 
+#允许密码认证
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g'  /etc/ssh/sshd_config
+
 5. 关闭删除ufw防火墙
 ufw disable && apt-get remove ufw -y
 
