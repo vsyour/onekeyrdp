@@ -54,7 +54,7 @@ date "+【%Y-%m-%d %H:%M:%S】 Install xrdp." 2>&1 | tee -a $logPath
 sudo apt install expect -y
 expect <(cat <<'END'
 set timeout 20
-spawn sudo su - ${userName} -c "sudo apt install xrdp -y"
+spawn sudo apt install xrdp -y
 expect { 
     "*Package*" { send "\011"; send "\r" }
     "软件包设置*" { send "\011"; send "\r" }
