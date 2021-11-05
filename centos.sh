@@ -60,7 +60,7 @@ date "+【%Y-%m-%d %H:%M:%S】 Install Software." 2>&1 | tee -a $logPath
 sudo su - $userName -c "wget -O ~/google-chrome-stable_current_x86_64.rpm https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
 sudo su - $userName -c "sudo yum -y install ~/google-chrome-stable_current_x86_64.rpm"
 #} &> /dev/null && 
-date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." 2>&1; printf "Your ${userName} Pasword Is ${passWord} \n";>&2 || 
+date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." 2>&1; printf "Your ${userName} Pasword Is ${passWord}\n";>&2 || 
 printf "\nError Occured " >&2
 
 
