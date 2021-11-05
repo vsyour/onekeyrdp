@@ -78,7 +78,7 @@ sudo su - $userName -c "sudo apt install -y nautilus nano"
 sudo su - $userName -c "sudo apt install -y locales ttf-wqy-zenhei ttf-wqy-microhei"
 sudo apt update -y
 #} &> /dev/null && 
-date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." 2>&1; printf "Your ${userName} Pasword Is ${passWord} \n";>&2 || 
+date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." 2>&1; printf "Your ${userName} Pasword Is ${passWord}\n";>&2 || 
 printf "\nError Occured " >&2
 
 
