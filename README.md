@@ -36,6 +36,9 @@ sed -i 's/PermitRootLogin no/PermitRootLogin yes/g'  /etc/ssh/sshd_config
 #允许密码认证
 sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g'  /etc/ssh/sshd_config
 
+# vim 模式修复
+sed -i 's/mouse=a/mouse-=a/g' /usr/share/vim/vim82/defaults.vim
+
 5. 关闭删除ufw防火墙
 ufw disable && apt-get remove ufw -y
 
