@@ -44,17 +44,17 @@ date "+【%Y-%m-%d %H:%M:%S】 Install ${userName} DeskTop System." 2>&1 | tee -
 #sudo su - $userName -c "sudo DEBIAN_FRONTEND=noninteractive apt install xfce4 desktop-base lxterminal mousepad -y < /dev/null > /dev/null"
 #sudo su - $userName -c "sudo systemctl disable lightdm.service"
 
-sudo su - $userName -c "sudo apt install -y aptitude"
+sudo su - $userName -c "sudo apt-get install -y aptitude"
 sudo su - $userName -c "sudo aptitude update -y"
 #sudo su - $userName -c "sudo aptitude install -q -y lxde"
 sudo su - $userName -c "sudo aptitude install -q -y --without-recommends lxde"
 sudo su - $userName -c "sudo apt install -y lxterminal mousepad wget vim"
 
 date "+【%Y-%m-%d %H:%M:%S】 Install xrdp." 2>&1 | tee -a $logPath
-sudo apt install expect -y
+sudo apt-get install expect -y
 expect <(cat <<'END'
 set timeout 20
-spawn sudo apt install xrdp -y
+spawn sudo apt-get install xrdp -y
 expect { 
     "*Package*" { send "\011"; send "\r" }
     "软件包设置*" { send "\011"; send "\r" }
@@ -65,15 +65,15 @@ END
 # sudo su - $userName -c "sudo apt install xrdp -y"
 sudo su - $userName -c "sudo systemctl enable xrdp"
 sudo su - $userName -c "sudo /etc/init.d/xrdp restart"
-sudo su - $userName -c "sudo apt install --assume-yes --fix-broken"
+sudo su - $userName -c "sudo apt-get install --assume-yes --fix-broken"
 
 date "+【%Y-%m-%d %H:%M:%S】 Install Software." 2>&1 | tee -a $logPath
 sudo su - $userName -c "wget -O ~/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
 sudo su - $userName -c "sudo dpkg --install ~/google-chrome-stable_current_amd64.deb"
-sudo su - $userName -c "sudo apt install --assume-yes --fix-broken"
-sudo su - $userName -c "sudo apt install nautilus nano -y"
-sudo su - $userName -c "sudo apt install locales ttf-wqy-zenhei ttf-wqy-microhei -y"
-sudo apt update -y
+sudo su - $userName -c "sudo apt-get install --assume-yes --fix-broken"
+sudo su - $userName -c "sudo apt-get install nautilus nano -y"
+sudo su - $userName -c "sudo apt-get install locales ttf-wqy-zenhei ttf-wqy-microhei -y"
+sudo apt-get update -y
 #} &> /dev/null && 
 date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." 2>&1; printf "Your ${userName} Pasword Is ${passWord}\n";>&2 || 
 printf "\nError Occured " >&2
