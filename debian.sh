@@ -58,6 +58,7 @@ spawn sudo apt-get install xrdp -y
 expect { 
     "*Package*" { send "\011"; send "\r" }
     "软件包设置*" { send "\011"; send "\r" }
+    "Keyboard layout:" { send "1\r" }
 }
 interact
 END
