@@ -65,28 +65,6 @@ bash linuxOneKeyRdp.sh
 
 ---
 
-## 进阶功能 (Advanced Modules)
-
-### 1. 渗透测试工具包
-
-```bash
-source <(curl -sL https://git.io/pentools)
-```
-
-**包含工具**:
-*   **隐私保护**: Tor, Tor Browser, Mullvad Browser, Proxychains
-*   **WebShell 管理**: AntSword (蚁剑), Behinder (冰蝎), Godzilla (哥斯拉), Weevely3
-*   **数据库管理**: Navicat 15 for MySQL
-*   **环境依赖**: JDK 8, Python 3
-
-### 2. 独立 Swap 管理
-
-```bash
-source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/swap.sh)
-```
-
----
-
 ## 常见问题 (FAQ)
 
 ### Q1: 安装完成后如何连接？
@@ -121,14 +99,13 @@ sed -i 's/mouse=a/mouse-=a/g' /usr/share/vim/vim8*/defaults.vim
 ```
 onekeyrdp/
 ├── linuxOneKeyRdp.sh        # 入口脚本 (OS 检测 + 分发)
+├── common.sh                # 公共函数库 (用户管理, Swap, Polkit修复等)
 ├── debian.sh                # Debian / Ubuntu < 20
 ├── ubuntu2.sh               # Ubuntu 20.04+
 ├── centos.sh                # CentOS / RHEL / Rocky / AlmaLinux
 ├── fedora.sh                # Fedora
 ├── arch.sh                  # Arch Linux / Manjaro
 ├── opensuse.sh              # openSUSE Leap / Tumbleweed
-├── swap.sh                  # 独立 Swap 管理工具
-├── installPenTestTools.sh   # 渗透测试工具包
 └── README.md                # 本文件
 ```
 
