@@ -13,6 +13,8 @@ function checkSystem(){
     release="centos"
   elif cat /etc/issue | grep -q -E -i "debian"; then
     release="debian"
+  elif grep -q -i "arch" /etc/os-release; then # 增加 Arch 识别
+    release="arch"
   elif cat /etc/issue | grep -q -E -i "ubuntu 2"; then
     release="ubuntu2"
   elif cat /etc/issue | grep -q -E -i "ubuntu"; then
@@ -35,3 +37,4 @@ checkSystem
 [[ "$release" = "ubuntu" ]] && source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/debian.sh "ubuntu") 
 [[ "$release" = "centos" ]] && source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/centos.sh "centos")
 [[ "$release" = "ubuntu2" ]] && source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/ubuntu2.sh "ubuntu")
+[[ "$release" = "arch" ]] && source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/arch.sh "arch")
