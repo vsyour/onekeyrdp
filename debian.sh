@@ -4,164 +4,94 @@
 # Optimized: English Environment + Chinese Support (Fonts & Input)
 #
 
-# --- 0. 权限检查 ---
-if [ "$(id -u)" != "0" ]; then
-    echo "Error: You must be root to run this script."
-    echo "Please run: sudo $0"
-    exit 1
+# 引入公共函数库
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" 2>/dev/null)" 2>/dev/null && pwd)"
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+    source "${SCRIPT_DIR}/common.sh"
+else
+    # 如果找不到本地文件，尝试从远程加载 (支持 curl 管道运行)
+    source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/common.sh)
 fi
+
+# --- 1. 基础检查与准备 ---
+check_root
 
 export DEBIAN_FRONTEND=noninteractive
 
-# --- 1. 环境准备 ---
-echo ">>> [1/7] Updating system and installing base tools..."
+echo -e "${Green}>>> [1/5] Updating system and installing base tools...${Font}"
 apt-get update -y
-# 安装基础工具 + xauth/dbus (解决XRDP闪退)
 apt-get install -y sudo wget curl vim locales net-tools xauth dbus-x11
 
-# --- 2. 语言环境配置 (关键修改：保持英文系统，支持中文显示) ---
-echo ">>> [2/7] Configuring Locale (English System + Chinese Support)..."
-
-# 确保 locale.gen 存在
+# --- 2. 语言环境配置 ---
+echo -e "${Green}>>> [2/5] Configuring Locale...${Font}"
 if [ ! -f /etc/locale.gen ]; then
     apt-get install -y locales
 fi
-
-# 启用 en_US 和 zh_CN
 sed -i 's/^# *zh_CN.UTF-8/zh_CN.UTF-8/' /etc/locale.gen
 sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
-
-# 生成语言包
 locale-gen
-
-# 关键：设置默认系统语言为英文 (这样界面就是英文的)
 update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-# --- 3. 创建用户 ---
-logPath='./oneKeyRdp.log'
-# 如果未指定参数，默认用户名为 debian
+# --- 3. 用户与 Swap 设置 (使用 common.sh) ---
+echo -e "${Green}>>> [3/5] Setting up User and Swap...${Font}"
 userName=${1:-"debian"}
-# 生成随机密码
-passWord=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)
+# 调用 common.sh 中的 create_user 函数，并捕获输出的密码
+passWord=$(create_user "$userName")
 
-echo ">>> [3/7] Creating User: $userName..."
-date "+【%Y-%m-%d %H:%M:%S】 Creating User..." >> $logPath
+# 调用 common.sh 中的 setup_swap 函数
+setup_swap
 
-if id "$userName" &>/dev/null; then
-    echo "User ${userName} already exists. Updating password."
-else
-    useradd -s /bin/bash -m $userName
-fi
-# 设置密码
-echo "${userName}:${passWord}" | chpasswd
-# 设置 sudo 权限 (使用独立文件更安全)
-echo "${userName} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${userName}"
-chmod 0440 "/etc/sudoers.d/${userName}"
+# --- 4. 安装桌面环境 ---
+echo -e "${Green}>>> [4/5] Installing Desktop (LXDE) & Input Method...${Font}"
 
-# --- 4. 设置 Swap (防止 Chrome 崩溃) ---
-echo ">>> [4/7] Configuring Swap..."
-# 只有当 swap 为 0 时才创建，避免重复
-if [ $(free -m | grep Swap | awk '{print $2}') -eq 0 ]; then
-    echo "Creating 2GB swap file..."
-    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    # 检查 fstab 防止重复写入
-    if ! grep -q "/swapfile" /etc/fstab; then
-        echo '/swapfile none swap sw 0 0' >> /etc/fstab
-    fi
-else
-    echo "Swap already exists, skipping."
-fi
-
-# --- 5. 安装桌面、字体与输入法 ---
-echo ">>> [5/7] Installing Desktop (LXDE), Fonts & Fcitx..."
-
-# 安装 LXDE 核心 (轻量)
+# 安装 LXDE
 apt-get install -y lxde-core lxterminal mousepad
 
-# 安装中文字体 (兼容新旧包名)
+# 安装中文字体
 apt-get install -y fonts-wqy-zenhei fonts-wqy-microhei fonts-noto-cjk 2>/dev/null || \
     apt-get install -y ttf-wqy-zenhei ttf-wqy-microhei fonts-noto-cjk 2>/dev/null || true
 
-# 安装 Fcitx 输入法及拼音
+# 安装 Fcitx
 apt-get install -y fcitx fcitx-googlepinyin fcitx-table-wbpy fcitx-ui-classic fcitx-config-gtk 2>/dev/null || \
     apt-get install -y fcitx5 fcitx5-chinese-addons fcitx5-frontend-gtk3 fcitx5-frontend-qt5 2>/dev/null || true
 
-# 设置时区为上海
+# 设置时区
 timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-# --- 配置用户环境 (支持英文环境下输入中文) ---
-# 使用 .xsessionrc 确保 XRDP 登录时加载输入法变量
+# 配置用户输入法环境
 cat <<EOF > /home/${userName}/.xsessionrc
-# Load Fcitx specific environment variables
 export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 export XMODIFIERS=@im=fcitx
-
-# Start Fcitx automatically
 if command -v fcitx5 &>/dev/null; then
     fcitx5 -d &
 elif command -v fcitx &>/dev/null; then
     fcitx -d &
 fi
 EOF
-
-# 修复权限
 chown $userName:$userName /home/${userName}/.xsessionrc
 
-# --- 6. 安装与修复 XRDP ---
-echo ">>> [6/7] Installing & Configuring XRDP..."
+# --- 5. 配置 XRDP ---
+echo -e "${Green}>>> [5/5] Configuring XRDP...${Font}"
 apt-get install -y xrdp
 
-# 修复 Polkit 弹窗 (Debian/Ubuntu 通用修复)
-mkdir -p /etc/polkit-1/localauthority/50-local.d/
-cat <<EOF > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
-[Allow Colord all Users]
-Identity=unix-user:*
-Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
-ResultAny=no
-ResultInactive=no
-ResultActive=yes
-EOF
+# 修复 Polkit (使用 common.sh)
+fix_polkit_legacy
 
-# 配置 XRDP 启动 Session (保证启动 LXDE)
+# 配置 Session
 su - $userName -c "echo 'startlxde' > ~/.xsession"
 
-# 重启 XRDP 服务
 systemctl restart xrdp
 systemctl enable xrdp
 
-# --- 7. 安装 Chrome ---
-echo ">>> [7/7] Installing Chrome..."
+# --- 6. 安装 Chrome ---
 if ! command -v google-chrome &> /dev/null; then
     wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     apt-get install -y /tmp/google-chrome.deb || true
     rm -f /tmp/google-chrome.deb
 fi
 
-# --- 完成 ---
-# 保存凭据到日志
-date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." >> $logPath
-echo "Username: ${userName}  Password: ${passWord}" >> $logPath
-
-#获取公网IP
-public_ip=$(curl -s --max-time 5 ifconfig.me)
-[ -z "$public_ip" ] && public_ip="Your_Server_IP"
-
-echo "-------------------------------------------------------"
-echo "  Installation Completed!"
-echo "  System Language : English (en_US.UTF-8)"
-echo "  Input Support   : Chinese (Fcitx)"
-echo ""
-echo "  Address  : ${public_ip}"
-echo "  Username : ${userName}"
-echo "  Password : ${passWord}"
-echo "-------------------------------------------------------"
-echo "IMPORTANT: Using RDP, use 'Ctrl + Space' to toggle Chinese Input."
-echo "Press any key to REBOOT system (Apply changes)..."
-
-read -n 1 -s -r -p ""
-reboot
+# --- 完成 (使用 common.sh) ---
+public_ip=$(get_public_ip)
+print_summary "$public_ip" "$userName" "$passWord" "LXDE" "Fcitx"
