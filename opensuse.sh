@@ -1,7 +1,6 @@
 #!/bin/bash
 #
-# Configure And Start RDP FOR CentOS / RHEL / Rocky Linux / AlmaLinux.
-# Supports: CentOS 7 (yum), CentOS 8+/Stream/Rocky/Alma (dnf)
+# Configure And Start RDP FOR openSUSE (Leap / Tumbleweed).
 # Optimized: English Environment + Chinese Support (Fonts & IBus Input)
 #
 
@@ -12,27 +11,15 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-# --- Detect package manager ---
-if command -v dnf &>/dev/null; then
-    PKG="dnf"
-else
-    PKG="yum"
-fi
-
 # --- 1. 环境准备 ---
 echo ">>> [1/7] Updating system and installing base tools..."
-$PKG update -y
-$PKG install -y sudo wget curl vim net-tools epel-release
-
-# Re-run after EPEL is available
-$PKG install -y xauth dbus-x11 2>/dev/null || true
+zypper --non-interactive refresh
+zypper --non-interactive update
+zypper --non-interactive install sudo wget curl vim net-tools xauth dbus-1-x11
 
 # --- 2. 语言环境配置 ---
 echo ">>> [2/7] Configuring Locale (English System + Chinese Support)..."
-
-# Install language packs
-$PKG install -y glibc-langpack-en glibc-langpack-zh 2>/dev/null || \
-    $PKG install -y glibc-common 2>/dev/null || true
+zypper --non-interactive install glibc-locale glibc-locale-base 2>/dev/null || true
 
 # 设置系统语言为英文
 localectl set-locale LANG=en_US.UTF-8 2>/dev/null || \
@@ -41,7 +28,7 @@ export LANG=en_US.UTF-8
 
 # --- 3. 创建用户 ---
 logPath='./oneKeyRdp.log'
-userName=${1:-"centos"}
+userName=${1:-"suse"}
 passWord=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)
 
 echo ">>> [3/7] Creating User: $userName..."
@@ -74,24 +61,22 @@ fi
 # --- 5. 安装桌面、字体与输入法 ---
 echo ">>> [5/7] Installing Desktop (XFCE), Fonts & IBus..."
 
-# 安装 XFCE 桌面 (RHEL 系最佳轻量桌面)
-$PKG groupinstall -y "Xfce" 2>/dev/null || \
-    $PKG groupinstall -y "xfce" 2>/dev/null || \
-    $PKG install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar 2>/dev/null || true
+# 安装 XFCE 桌面
+zypper --non-interactive install -t pattern xfce 2>/dev/null || \
+    zypper --non-interactive install xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar 2>/dev/null || true
 
 # X Window System 基础
-$PKG groupinstall -y "base-x" 2>/dev/null || \
-    $PKG install -y xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-drv-libinput 2>/dev/null || true
+zypper --non-interactive install xorg-x11-server xorg-x11-driver-video xinit 2>/dev/null || true
 
 # 安装中文字体
-$PKG install -y wqy-zenhei-fonts wqy-microhei-fonts google-noto-sans-cjk-fonts 2>/dev/null || \
-    $PKG install -y wqy-* cjkuni* 2>/dev/null || true
+zypper --non-interactive install google-noto-sans-sc-fonts wqy-zenhei-fonts wqy-microhei-fonts 2>/dev/null || \
+    zypper --non-interactive install intlfonts-chinese-big-bitmap-fonts 2>/dev/null || true
 
-# 安装 IBus 中文输入法 (CentOS/RHEL 原生支持)
-$PKG install -y ibus ibus-libpinyin ibus-gtk3 ibus-gtk2 2>/dev/null || true
+# 安装 IBus 中文输入法
+zypper --non-interactive install ibus ibus-libpinyin ibus-gtk ibus-gtk3 2>/dev/null || true
 
 # 安装额外工具
-$PKG install -y mousepad nano firefox 2>/dev/null || true
+zypper --non-interactive install mousepad nano MozillaFirefox 2>/dev/null || true
 
 # 设置时区
 timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
@@ -111,21 +96,10 @@ chown ${userName}:${userName} /home/${userName}/.xsessionrc
 
 # --- 6. 安装与修复 XRDP ---
 echo ">>> [6/7] Installing & Configuring XRDP..."
-$PKG install -y xrdp
+zypper --non-interactive install xrdp
 
 # 修复 Polkit 弹窗
-mkdir -p /etc/polkit-1/localauthority/50-local.d/ 2>/dev/null
-cat <<EOF > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
-[Allow Colord all Users]
-Identity=unix-user:*
-Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
-ResultAny=no
-ResultInactive=no
-ResultActive=yes
-EOF
-
-# 对于使用 polkit rules.d 的新系统 (CentOS 8+)
-mkdir -p /etc/polkit-1/rules.d/ 2>/dev/null
+mkdir -p /etc/polkit-1/rules.d/
 cat <<EOF > /etc/polkit-1/rules.d/45-allow-colord.rules
 polkit.addRule(function(action, subject) {
     if ((action.id == "org.freedesktop.color-manager.create-device" ||
@@ -148,13 +122,9 @@ su - $userName -c "chmod +x ~/.xsession"
 systemctl restart xrdp
 systemctl enable xrdp
 
-# --- 7. 安装 Chrome ---
-echo ">>> [7/7] Installing Chrome..."
-if ! command -v google-chrome &>/dev/null; then
-    wget -q -O /tmp/google-chrome.rpm https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-    $PKG install -y /tmp/google-chrome.rpm || true
-    rm -f /tmp/google-chrome.rpm
-fi
+# --- 7. 安装 Chromium ---
+echo ">>> [7/7] Installing Chromium..."
+zypper --non-interactive install chromium 2>/dev/null || true
 
 # --- 完成 ---
 date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." >> $logPath
@@ -164,8 +134,9 @@ public_ip=$(curl -s --max-time 5 ifconfig.me)
 [ -z "$public_ip" ] && public_ip="Your_Server_IP"
 
 echo "-------------------------------------------------------"
-echo "  Installation Completed!"
+echo "  openSUSE RDP Installation Completed!"
 echo "  Desktop     : XFCE"
+echo "  Browser     : Chromium"
 echo "  System Lang : English (en_US.UTF-8)"
 echo "  Input       : Chinese (IBus Pinyin)"
 echo ""

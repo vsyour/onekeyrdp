@@ -63,7 +63,7 @@ echo ">>> [4/7] Configuring Swap..."
 # 只有当 swap 为 0 时才创建，避免重复
 if [ $(free -m | grep Swap | awk '{print $2}') -eq 0 ]; then
     echo "Creating 2GB swap file..."
-    fallocate -l 2G /swapfile
+    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
     chmod 600 /swapfile
     mkswap /swapfile
     swapon /swapfile
@@ -81,14 +81,17 @@ echo ">>> [5/7] Installing Desktop (LXDE), Fonts & Fcitx..."
 # 安装 LXDE 核心 (轻量)
 apt-get install -y lxde-core lxterminal mousepad
 
-# 关键：安装中文字体 (解决方块字)
-apt-get install -y ttf-wqy-zenhei ttf-wqy-microhei fonts-noto-cjk
+# 安装中文字体 (兼容新旧包名)
+apt-get install -y fonts-wqy-zenhei fonts-wqy-microhei fonts-noto-cjk 2>/dev/null || \
+    apt-get install -y ttf-wqy-zenhei ttf-wqy-microhei fonts-noto-cjk 2>/dev/null || true
 
-# 关键：安装 Fcitx 输入法及拼音
-apt-get install -y fcitx fcitx-googlepinyin fcitx-table-wbpy fcitx-ui-classic fcitx-config-gtk
+# 安装 Fcitx 输入法及拼音
+apt-get install -y fcitx fcitx-googlepinyin fcitx-table-wbpy fcitx-ui-classic fcitx-config-gtk 2>/dev/null || \
+    apt-get install -y fcitx5 fcitx5-chinese-addons fcitx5-frontend-gtk3 fcitx5-frontend-qt5 2>/dev/null || true
 
 # 设置时区为上海
-timedatectl set-timezone Asia/Shanghai
+timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 # --- 配置用户环境 (支持英文环境下输入中文) ---
 # 使用 .xsessionrc 确保 XRDP 登录时加载输入法变量
@@ -99,7 +102,11 @@ export QT_IM_MODULE=fcitx
 export XMODIFIERS=@im=fcitx
 
 # Start Fcitx automatically
-fcitx -d &
+if command -v fcitx5 &>/dev/null; then
+    fcitx5 -d &
+elif command -v fcitx &>/dev/null; then
+    fcitx -d &
+fi
 EOF
 
 # 修复权限
@@ -110,6 +117,7 @@ echo ">>> [6/7] Installing & Configuring XRDP..."
 apt-get install -y xrdp
 
 # 修复 Polkit 弹窗 (Debian/Ubuntu 通用修复)
+mkdir -p /etc/polkit-1/localauthority/50-local.d/
 cat <<EOF > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
 [Allow Colord all Users]
 Identity=unix-user:*
@@ -120,7 +128,6 @@ ResultActive=yes
 EOF
 
 # 配置 XRDP 启动 Session (保证启动 LXDE)
-# 注意：这里我们让 .xsession 调用 startlxde，而 .xsessionrc 会被 X11 自动调用加载变量
 su - $userName -c "echo 'startlxde' > ~/.xsession"
 
 # 重启 XRDP 服务
@@ -131,12 +138,15 @@ systemctl enable xrdp
 echo ">>> [7/7] Installing Chrome..."
 if ! command -v google-chrome &> /dev/null; then
     wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    # 使用 apt install ./file.deb 可以自动解决依赖，比 dpkg -i 更安全
-    apt-get install -y /tmp/google-chrome.deb
+    apt-get install -y /tmp/google-chrome.deb || true
     rm -f /tmp/google-chrome.deb
 fi
 
 # --- 完成 ---
+# 保存凭据到日志
+date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." >> $logPath
+echo "Username: ${userName}  Password: ${passWord}" >> $logPath
+
 #获取公网IP
 public_ip=$(curl -s --max-time 5 ifconfig.me)
 [ -z "$public_ip" ] && public_ip="Your_Server_IP"

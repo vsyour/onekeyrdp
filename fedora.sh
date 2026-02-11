@@ -1,7 +1,6 @@
 #!/bin/bash
 #
-# Configure And Start RDP FOR CentOS / RHEL / Rocky Linux / AlmaLinux.
-# Supports: CentOS 7 (yum), CentOS 8+/Stream/Rocky/Alma (dnf)
+# Configure And Start RDP FOR Fedora.
 # Optimized: English Environment + Chinese Support (Fonts & IBus Input)
 #
 
@@ -12,36 +11,21 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-# --- Detect package manager ---
-if command -v dnf &>/dev/null; then
-    PKG="dnf"
-else
-    PKG="yum"
-fi
-
 # --- 1. 环境准备 ---
 echo ">>> [1/7] Updating system and installing base tools..."
-$PKG update -y
-$PKG install -y sudo wget curl vim net-tools epel-release
-
-# Re-run after EPEL is available
-$PKG install -y xauth dbus-x11 2>/dev/null || true
+dnf update -y
+dnf install -y sudo wget curl vim net-tools xorg-x11-xauth dbus-x11
 
 # --- 2. 语言环境配置 ---
 echo ">>> [2/7] Configuring Locale (English System + Chinese Support)..."
-
-# Install language packs
-$PKG install -y glibc-langpack-en glibc-langpack-zh 2>/dev/null || \
-    $PKG install -y glibc-common 2>/dev/null || true
-
-# 设置系统语言为英文
+dnf install -y glibc-langpack-en glibc-langpack-zh 2>/dev/null || true
 localectl set-locale LANG=en_US.UTF-8 2>/dev/null || \
     echo "LANG=en_US.UTF-8" > /etc/locale.conf
 export LANG=en_US.UTF-8
 
 # --- 3. 创建用户 ---
 logPath='./oneKeyRdp.log'
-userName=${1:-"centos"}
+userName=${1:-"fedora"}
 passWord=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)
 
 echo ">>> [3/7] Creating User: $userName..."
@@ -74,24 +58,23 @@ fi
 # --- 5. 安装桌面、字体与输入法 ---
 echo ">>> [5/7] Installing Desktop (XFCE), Fonts & IBus..."
 
-# 安装 XFCE 桌面 (RHEL 系最佳轻量桌面)
-$PKG groupinstall -y "Xfce" 2>/dev/null || \
-    $PKG groupinstall -y "xfce" 2>/dev/null || \
-    $PKG install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar 2>/dev/null || true
+# 安装 XFCE 桌面
+dnf groupinstall -y "Xfce Desktop" 2>/dev/null || \
+    dnf install -y @xfce-desktop-environment 2>/dev/null || \
+    dnf install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar 2>/dev/null || true
 
 # X Window System 基础
-$PKG groupinstall -y "base-x" 2>/dev/null || \
-    $PKG install -y xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-drv-libinput 2>/dev/null || true
+dnf groupinstall -y "base-x" 2>/dev/null || \
+    dnf install -y xorg-x11-server-Xorg xorg-x11-xinit 2>/dev/null || true
 
 # 安装中文字体
-$PKG install -y wqy-zenhei-fonts wqy-microhei-fonts google-noto-sans-cjk-fonts 2>/dev/null || \
-    $PKG install -y wqy-* cjkuni* 2>/dev/null || true
+dnf install -y wqy-zenhei-fonts wqy-microhei-fonts google-noto-sans-cjk-fonts 2>/dev/null || true
 
-# 安装 IBus 中文输入法 (CentOS/RHEL 原生支持)
-$PKG install -y ibus ibus-libpinyin ibus-gtk3 ibus-gtk2 2>/dev/null || true
+# 安装 IBus 中文输入法
+dnf install -y ibus ibus-libpinyin ibus-gtk3 ibus-gtk2 2>/dev/null || true
 
 # 安装额外工具
-$PKG install -y mousepad nano firefox 2>/dev/null || true
+dnf install -y mousepad nano firefox 2>/dev/null || true
 
 # 设置时区
 timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
@@ -111,21 +94,10 @@ chown ${userName}:${userName} /home/${userName}/.xsessionrc
 
 # --- 6. 安装与修复 XRDP ---
 echo ">>> [6/7] Installing & Configuring XRDP..."
-$PKG install -y xrdp
+dnf install -y xrdp
 
-# 修复 Polkit 弹窗
-mkdir -p /etc/polkit-1/localauthority/50-local.d/ 2>/dev/null
-cat <<EOF > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
-[Allow Colord all Users]
-Identity=unix-user:*
-Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
-ResultAny=no
-ResultInactive=no
-ResultActive=yes
-EOF
-
-# 对于使用 polkit rules.d 的新系统 (CentOS 8+)
-mkdir -p /etc/polkit-1/rules.d/ 2>/dev/null
+# 修复 Polkit 弹窗 (Fedora 使用 rules.d)
+mkdir -p /etc/polkit-1/rules.d/
 cat <<EOF > /etc/polkit-1/rules.d/45-allow-colord.rules
 polkit.addRule(function(action, subject) {
     if ((action.id == "org.freedesktop.color-manager.create-device" ||
@@ -152,7 +124,7 @@ systemctl enable xrdp
 echo ">>> [7/7] Installing Chrome..."
 if ! command -v google-chrome &>/dev/null; then
     wget -q -O /tmp/google-chrome.rpm https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-    $PKG install -y /tmp/google-chrome.rpm || true
+    dnf install -y /tmp/google-chrome.rpm || true
     rm -f /tmp/google-chrome.rpm
 fi
 
@@ -164,7 +136,7 @@ public_ip=$(curl -s --max-time 5 ifconfig.me)
 [ -z "$public_ip" ] && public_ip="Your_Server_IP"
 
 echo "-------------------------------------------------------"
-echo "  Installation Completed!"
+echo "  Fedora RDP Installation Completed!"
 echo "  Desktop     : XFCE"
 echo "  System Lang : English (en_US.UTF-8)"
 echo "  Input       : Chinese (IBus Pinyin)"

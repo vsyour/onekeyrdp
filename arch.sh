@@ -23,10 +23,13 @@ locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
 # --- 3. 创建用户 ---
+logPath='./oneKeyRdp.log'
 userName=${1:-"arch"}
 passWord=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)
 
 echo ">>> [3/7] Creating User: $userName..."
+date "+【%Y-%m-%d %H:%M:%S】 Creating User..." >> $logPath
+
 if id "$userName" &>/dev/null; then
     echo "User ${userName} already exists."
 else
@@ -34,19 +37,29 @@ else
 fi
 echo "${userName}:${passWord}" | chpasswd
 
-# 修复 Sudo 免密
-chmod +w /etc/sudoers
-echo "${userName} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-chmod -w /etc/sudoers
+# 使用 sudoers.d (安全方式，不直接修改 /etc/sudoers)
+echo "${userName} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${userName}"
+chmod 0440 "/etc/sudoers.d/${userName}"
+
+# 确保 sudoers 包含 sudoers.d 目录
+if ! grep -q "^#includedir /etc/sudoers.d" /etc/sudoers && \
+   ! grep -q "^@includedir /etc/sudoers.d" /etc/sudoers; then
+    echo "#includedir /etc/sudoers.d" >> /etc/sudoers
+fi
 
 # --- 4. 设置 Swap ---
 echo ">>> [4/7] Configuring Swap..."
-if [ $(free -m | grep Swap | awk '{print $2}') -eq 0 ]; then
-    fallocate -l 2G /swapfile
+if [ "$(free -m | grep Swap | awk '{print $2}')" -eq 0 ]; then
+    echo "Creating 2GB swap file..."
+    fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
     chmod 600 /swapfile
     mkswap /swapfile
     swapon /swapfile
-    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    if ! grep -q "/swapfile" /etc/fstab; then
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    fi
+else
+    echo "Swap already exists, skipping."
 fi
 
 # --- 5. 安装桌面、字体与输入法 (修复黑屏的关键点) ---
@@ -56,7 +69,8 @@ pacman -S --noconfirm xorg-server xorg-xinit lxde openbox \
     wqy-zenhei wqy-microhei adobe-source-han-sans-cn-fonts \
     fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt fcitx5-chinese-addons
 
-timedatectl set-timezone Asia/Shanghai
+timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 cat <<EOF > /home/${userName}/.xprofile
 export GTK_IM_MODULE=fcitx
@@ -69,8 +83,11 @@ chown $userName:users /home/${userName}/.xprofile
 # --- 6. 安装与修复 XRDP (通过 AUR) ---
 echo ">>> [6/7] Installing yay and XRDP from AUR..."
 
-su - $userName -c "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin && cd /tmp/yay-bin && makepkg -si --noconfirm"
-rm -rf /tmp/yay-bin
+# 安装 yay (AUR helper)
+if ! command -v yay &>/dev/null; then
+    su - $userName -c "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin && cd /tmp/yay-bin && makepkg -si --noconfirm"
+    rm -rf /tmp/yay-bin
+fi
 
 su - $userName -c "yay -S --noconfirm xrdp xorgxrdp"
 
@@ -94,6 +111,9 @@ echo ">>> [7/7] Installing Chromium..."
 pacman -S --noconfirm chromium
 
 # --- 完成 ---
+date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." >> $logPath
+echo "Username: ${userName}  Password: ${passWord}" >> $logPath
+
 public_ip=$(curl -s --max-time 5 ifconfig.me)
 [ -z "$public_ip" ] && public_ip="Your_Server_IP"
 
