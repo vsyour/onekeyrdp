@@ -4,67 +4,50 @@
 # Optimized: English Environment + Chinese Support + AUR Support + Fix Black Screen
 #
 
-# --- 0. 权限检查 ---
-if [ "$(id -u)" != "0" ]; then
-    echo "Error: You must be root to run this script."
-    exit 1
+# 引入公共函数库
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" 2>/dev/null)" 2>/dev/null && pwd)"
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+    source "${SCRIPT_DIR}/common.sh"
+else
+    source <(curl -sL https://raw.githubusercontent.com/vsyour/onekeyrdp/main/common.sh)
 fi
 
-# --- 1. 环境准备 ---
-echo ">>> [1/7] Updating system and installing base tools..."
+# --- 1. 基础检查与准备 ---
+check_root
+
+echo -e "${Green}>>> [1/5] Updating system and installing base tools...${Font}"
 pacman -Syu --noconfirm
 pacman -S --noconfirm sudo wget curl vim base-devel net-tools xorg-xauth dbus git
 
 # --- 2. 语言环境配置 ---
-echo ">>> [2/7] Configuring Locale..."
+echo -e "${Green}>>> [2/5] Configuring Locale...${Font}"
 sed -i 's/^# *zh_CN.UTF-8/zh_CN.UTF-8/' /etc/locale.gen
 sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
-# --- 3. 创建用户 ---
-logPath='./oneKeyRdp.log'
+# --- 3. 用户与 Swap 设置 (使用 common.sh) ---
+echo -e "${Green}>>> [3/5] Setting up User and Swap...${Font}"
 userName=${1:-"arch"}
-passWord=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)
+# Arch 需要特殊的用户组设置，但 common.sh 的基本创建也兼容，这里保留 common.sh 调用
+# 如果需要特殊组，可以在 common.sh 后追加 usermod
+passWord=$(create_user "$userName")
 
-echo ">>> [3/7] Creating User: $userName..."
-date "+【%Y-%m-%d %H:%M:%S】 Creating User..." >> $logPath
+# Arch 推荐将用户加入 wheel 组
+usermod -aG wheel "$userName"
 
-if id "$userName" &>/dev/null; then
-    echo "User ${userName} already exists."
-else
-    useradd -m -g users -G wheel -s /bin/bash "$userName"
-fi
-echo "${userName}:${passWord}" | chpasswd
-
-# 使用 sudoers.d (安全方式，不直接修改 /etc/sudoers)
-echo "${userName} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${userName}"
-chmod 0440 "/etc/sudoers.d/${userName}"
-
-# 确保 sudoers 包含 sudoers.d 目录
+# 确保 sudoers 包含 sudoers.d 目录 (Arch 默认可能没有)
 if ! grep -q "^#includedir /etc/sudoers.d" /etc/sudoers && \
    ! grep -q "^@includedir /etc/sudoers.d" /etc/sudoers; then
     echo "#includedir /etc/sudoers.d" >> /etc/sudoers
 fi
 
-# --- 4. 设置 Swap ---
-echo ">>> [4/7] Configuring Swap..."
-if [ "$(free -m | grep Swap | awk '{print $2}')" -eq 0 ]; then
-    echo "Creating 2GB swap file..."
-    fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    if ! grep -q "/swapfile" /etc/fstab; then
-        echo '/swapfile none swap sw 0 0' >> /etc/fstab
-    fi
-else
-    echo "Swap already exists, skipping."
-fi
+setup_swap
 
-# --- 5. 安装桌面、字体与输入法 (修复黑屏的关键点) ---
-echo ">>> [5/7] Installing LXDE, Fonts & Fcitx5..."
-# 直接安装整个 lxde 组和 openbox，防止组件缺失导致黑屏
+# --- 4. 安装桌面环境 ---
+echo -e "${Green}>>> [4/5] Installing Desktop (LXDE) & Input Method...${Font}"
+
+# 直接安装整个 lxde 组和 openbox
 pacman -S --noconfirm xorg-server xorg-xinit lxde openbox \
     wqy-zenhei wqy-microhei adobe-source-han-sans-cn-fonts \
     fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt fcitx5-chinese-addons
@@ -72,16 +55,17 @@ pacman -S --noconfirm xorg-server xorg-xinit lxde openbox \
 timedatectl set-timezone Asia/Shanghai 2>/dev/null || \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
+# 配置用户环境
 cat <<EOF > /home/${userName}/.xprofile
 export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 export XMODIFIERS=@im=fcitx
 fcitx5 -d &
 EOF
-chown $userName:users /home/${userName}/.xprofile
+chown $userName:$userName /home/${userName}/.xprofile
 
-# --- 6. 安装与修复 XRDP (通过 AUR) ---
-echo ">>> [6/7] Installing yay and XRDP from AUR..."
+# --- 5. 配置 XRDP (通过 AUR) ---
+echo -e "${Green}>>> [5/5] Installing XRDP from AUR...${Font}"
 
 # 安装 yay (AUR helper)
 if ! command -v yay &>/dev/null; then
@@ -91,12 +75,12 @@ fi
 
 su - $userName -c "yay -S --noconfirm xrdp xorgxrdp"
 
-# 【修复黑屏关键】：使用 dbus-launch 包装启动，并写入 .xsession
+# 【修复黑屏关键】：使用 dbus-launch 包装启动
 su - $userName -c "echo 'exec dbus-launch --exit-with-session startlxde' > ~/.xinitrc"
 su - $userName -c "chmod +x ~/.xinitrc"
 su - $userName -c "ln -sf ~/.xinitrc ~/.xsession"
 
-# 全局兜底：确保所有的 X11 启动都会调起 LXDE
+# 全局兜底
 mkdir -p /etc/X11/xinit/xinitrc.d/
 echo "exec dbus-launch --exit-with-session startlxde" > /etc/X11/xinit/xinitrc.d/99-lxde.sh
 chmod +x /etc/X11/xinit/xinitrc.d/99-lxde.sh
@@ -106,24 +90,10 @@ echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
 systemctl enable xrdp --now
 systemctl enable xrdp-sesman --now
 
-# --- 7. 安装 Chromium ---
-echo ">>> [7/7] Installing Chromium..."
+# --- 6. 安装 Chromium ---
+echo -e "${Green}>>> [6/6] Installing Chromium...${Font}"
 pacman -S --noconfirm chromium
 
-# --- 完成 ---
-date "+【%Y-%m-%d %H:%M:%S】 Setup Completed." >> $logPath
-echo "Username: ${userName}  Password: ${passWord}" >> $logPath
-
-public_ip=$(curl -s --max-time 5 ifconfig.me)
-[ -z "$public_ip" ] && public_ip="Your_Server_IP"
-
-echo "-------------------------------------------------------"
-echo "  Arch Linux RDP Installation Completed!"
-echo "  Browser   : Chromium"
-echo "  Address   : ${public_ip}"
-echo "  Username  : ${userName}"
-echo "  Password  : ${passWord}"
-echo "-------------------------------------------------------"
-echo "Press any key to REBOOT..."
-read -n 1 -s -r -p ""
-reboot
+# --- 完成 (使用 common.sh) ---
+public_ip=$(get_public_ip)
+print_summary "$public_ip" "$userName" "$passWord" "LXDE" "Fcitx5"
