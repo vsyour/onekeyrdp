@@ -10,7 +10,7 @@ trap 'stty echo 2>/dev/null; exit 1' INT TERM
 # ==========================================
 REMOTE_HOST="104.194.83.44"
 REMOTE_PORT="10022"
-REMOTE_USER="root"
+REMOTE_USER="proxyuser"
 RDP_USER="admin"
 RDP_PASS="admin123"
 
