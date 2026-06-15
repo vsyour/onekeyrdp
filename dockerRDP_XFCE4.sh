@@ -44,7 +44,7 @@ ENV LC_ALL=en_US.UTF-8
 # 1. 安装基础组件与 XFCE4 (抛弃 LXDE，剪切板完美)
 RUN apt-get update && \\
     apt-get install -y --no-install-recommends \\
-    xfce4 xfce4-terminal xrdp xorgxrdp dbus-x11 sudo python3 \\
+    xfce4 xfce4-terminal xrdp xorgxrdp dbus dbus-x11 sudo python3 \\
     curl wget xz-utils ssh fuse ca-certificates locales \\
     fonts-wqy-zenhei firefox-esr sshpass \\
     && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \\
